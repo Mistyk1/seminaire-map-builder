@@ -7,6 +7,9 @@ export function createAppState() {
     return {
         baseField: null,
         currentTile: null,
+        currentLayer: 1,
+        highestLayer: 1,
+        background,
         currentTool: "pen",
         currentSize: {
             width: config.defaultWidth,

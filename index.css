@@ -27,7 +27,6 @@ body {
     width: 80%;
     display: flex;
     justify-content: center;
-
 }
 
 canvas {
@@ -71,5 +70,14 @@ button {
 }
 
 .tools button.active{
+    background-color: #1565c0;
+}
+
+.layers button{
+    font-size: 16px;
+    background-color: #e0e0e0;
+}
+
+.layers button.active {
     background-color: #1565c0;
 }

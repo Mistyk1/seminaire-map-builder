@@ -27,13 +27,13 @@ export function clearCanvas(context) {
     context.fillRect(0, 0, width, height);
 }
 
-export function drawGrid(context, size) {
+export function drawGrid(context, state) {
     const canvasSize = getCanvasDimensions(context);
-    const { width, height } = size;
+    const { width, height } = state.currentSize.width;
     const squareWidth = canvasSize.width / width;
     const squareHeight = canvasSize.height / height;
 
-    clearCanvas(context);
+    clearCanvas(context, state.currentSize, state.background);
 
     context.strokeStyle = "#6080F0";
     context.beginPath();
@@ -63,12 +63,13 @@ export function getCellFromEvent(event, size) {
     };
 }
 
-export function drawTile(context, tileSet, size, x, y, tileIndex) {
-    drawTileWithOptions(context, tileSet, size, x, y, tileIndex);
+export function drawTile(context, mapData, tileSet, background, size, x, y) {
+    drawTileWithOptions(context, mapData, tileSet, background, size, x, y);
 }
 
-export function drawTileWithOptions(context, tileSet, size, x, y, tileIndex, options = {}) {
-    if (!tileSet || tileSet.listItem[tileIndex] === undefined) {
+export function drawTileWithOptions(context, mapData, tileSet, background, size, x, y, options = {}) {
+    if (!tileSet) {
+        console.log("There is no tileset");
         return;
     }
 
@@ -81,13 +82,26 @@ export function drawTileWithOptions(context, tileSet, size, x, y, tileIndex, opt
     const offsetX = x * cellWidth;
     const offsetY = y * cellHeight;
 
-    context.drawImage(
-        tileSet.listItem[tileIndex],
-        offsetX,
-        offsetY,
-        squareWidth,
-        squareHeight,
-    );
+    if (background[y][x]){
+        context.drawImage(
+            background[y][x],
+            offsetX,
+            offsetY,
+            squareWidth,
+            squareHeight,
+        );
+    }
+    mapData.cells.forEach((layer, z) => {
+        if (layer[y][x]) {
+            context.drawImage(
+                tileSet.listItem[layer[y][x]],
+                offsetX,
+                offsetY,
+                squareWidth,
+                squareHeight,
+            );
+        }
+    });
 }
 
 export function eraseTile(context, size, x, y) {
@@ -107,28 +121,30 @@ export function eraseTile(context, size, x, y) {
 }
 
 export function applyTool(context, state, position) {
-    const { currentTool, currentTile, currentSize, baseField } = state;
+    const { currentTool, currentTile, currentSize, baseField, currentLayer, mapData, background } = state;
 
     switch (currentTool) {
         case "fill": {
-            const updatedCells = floodFillCells(state.mapData, position.x, position.y, currentTile);
+            const updatedCells = floodFillCells(state.mapData, position.x, position.y, currentLayer, currentTile);
 
             updatedCells.forEach((cell) => {
-                drawTileWithOptions(context, baseField, currentSize, cell.x, cell.y, currentTile);
+                drawTileWithOptions(context, mapData, baseField, state.background, currentSize, cell.x, cell.y);
             });
 
             syncMapJson(state);
             return;
         }
         case "erase":
+            setCell(state.mapData, position.x, position.y, currentLayer, null);
             eraseTile(context, currentSize, position.x, position.y);
-            setCell(state.mapData, position.x, position.y, null);
+            drawTile(context, mapData, baseField, background, currentSize, position.x, position.y);
             syncMapJson(state);
             return;
         case "pen":
         default:
-            drawTile(context, baseField, currentSize, position.x, position.y, currentTile);
-            setCell(state.mapData, position.x, position.y, currentTile);
+            setCell(state.mapData, position.x, position.y, currentLayer, currentTile);
+            eraseTile(context, currentSize, position.x, position.y);
+            drawTile(context, mapData, baseField, background, currentSize, position.x, position.y);
             syncMapJson(state);
     }
 }
@@ -137,24 +153,21 @@ export function renderMap(context, state, options = {}) {
     const { showGrid = true } = options;
 
     if (showGrid) {
-        drawGrid(context, state.currentSize);
+        drawGrid(context, state);
     } else {
-        clearCanvas(context);
+        clearCanvas(context, state.currentSize, state);
     }
 
-    state.mapData.cells.forEach((row, y) => {
+    state.mapData.cells[0].forEach((row, y) => {
         row.forEach((tileIndex, x) => {
-            if (tileIndex === null) {
-                return;
-            }
-
             drawTileWithOptions(
                 context,
+                state.mapData,
                 state.baseField,
+                state.background,
                 state.currentSize,
                 x,
                 y,
-                tileIndex,
                 { gap: showGrid ? 1 : 0 },
             );
         });

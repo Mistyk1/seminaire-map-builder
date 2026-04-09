@@ -26,7 +26,21 @@
                 <button id="change-size">Appliquer</button>
             </div>
         </div>
+        <label for="">Couche</label>
+        <div class="layers">
+            <button class="active" id="button-layer1" data-id="1">1</button>
+        </div>
+        <div class="form-group">
+            <button id="add-layer">+</button>
+        </div>
+        <div class="form-group">
+            <button id="remove-layer">-</button>
+        </div>
         <label for="">Textures</label>
+        <div class="form-group">
+            <button id="background">Importer un fond</button>
+            <input id="import-background" type="file" accept="image/*" hidden>
+        </div>
         <div class="tuile">
 
         </div>
@@ -54,7 +68,7 @@
         </div>
     </div>
     <div class="canvas">
-        <canvas width="800" height="800"></canvas>
+        <canvas></canvas>
     </div>
     <script src="src/index.js" type="module"></script>
 </body>

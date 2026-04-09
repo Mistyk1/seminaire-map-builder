@@ -2,7 +2,11 @@ export function createEmptyMapData(width, height) {
     return {
         width,
         height,
-        cells: Array.from({ length: height }, () => Array(width).fill(null)),
+        cells: Array.from({length: 1}, () =>
+            Array.from({ length: height }, () =>
+                Array(width).fill(null)
+            )
+        ),
     };
 }
 
@@ -10,30 +14,31 @@ export function resizeMapData(width, height) {
     return createEmptyMapData(width, height);
 }
 
-export function getCell(mapData, x, y) {
-    if (!mapData.cells[y] || mapData.cells[y][x] === undefined) {
+export function getCell(mapData, x, y, layer) {
+    if (!mapData.cells[layer] || !mapData.cells[layer][y] || mapData.cells[layer][y][x] === undefined) {
         return undefined;
     }
 
-    return mapData.cells[y][x];
+    return mapData.cells[layer][y][x];
 }
 
-export function setCell(mapData, x, y, value) {
-    if (!mapData.cells[y] || mapData.cells[y][x] === undefined) {
+export function setCell(mapData, x, y, layer, value) {
+    layer = layer - 1;
+    if (!mapData.cells[layer] || !mapData.cells[layer][y] || mapData.cells[layer][y][x] === undefined) {
         return;
     }
 
-    mapData.cells[y][x] = value;
+    mapData.cells[layer][y][x] = value;
 }
 
-export function floodFillCells(mapData, startX, startY, nextValue) {
-    const targetValue = getCell(mapData, startX, startY);
+export function floodFillCells(mapData, startX, startY, startLayer, nextValue) {
+    const targetValue = getCell(mapData, startX, startY, startLayer);
 
     if (targetValue === undefined || targetValue === nextValue) {
         return [];
     }
 
-    const pendingCells = [{ x: startX, y: startY }];
+    const pendingCells = [{ x: startX, y: startY, layer: startLayer }];
     const updatedCells = [];
     const visitedCells = new Set();
 
@@ -47,17 +52,17 @@ export function floodFillCells(mapData, startX, startY, nextValue) {
 
         visitedCells.add(cellKey);
 
-        if (getCell(mapData, cell.x, cell.y) !== targetValue) {
+        if (getCell(mapData, cell.x, cell.y, cell.layer) !== targetValue) {
             continue;
         }
 
-        setCell(mapData, cell.x, cell.y, nextValue);
+        setCell(mapData, cell.x, cell.y, cell.layer, nextValue);
         updatedCells.push(cell);
 
-        pendingCells.push({ x: cell.x + 1, y: cell.y });
-        pendingCells.push({ x: cell.x - 1, y: cell.y });
-        pendingCells.push({ x: cell.x, y: cell.y + 1 });
-        pendingCells.push({ x: cell.x, y: cell.y - 1 });
+        pendingCells.push({ x: cell.x + 1, y: cell.y, layer: cell.layer });
+        pendingCells.push({ x: cell.x - 1, y: cell.y, layer: cell.layer });
+        pendingCells.push({ x: cell.x, y: cell.y + 1, layer: cell.layer });
+        pendingCells.push({ x: cell.x, y: cell.y - 1, layer: cell.layer });
     }
 
     return updatedCells;
@@ -82,25 +87,27 @@ export function parseMapData(jsonContent) {
         throw new Error("Hauteur invalide dans le JSON.");
     }
 
-    if (!Array.isArray(parsedMap.cells) || parsedMap.cells.length !== parsedMap.height) {
+    if (!Array.isArray(parsedMap.cells) || parsedMap.cells[0].length !== parsedMap.height) {
         throw new Error("Structure de cellules invalide dans le JSON.");
     }
 
-    parsedMap.cells.forEach((row) => {
-        if (!Array.isArray(row) || row.length !== parsedMap.width) {
-            throw new Error("Les lignes du JSON ne correspondent pas a la taille indiquee.");
-        }
-
-        row.forEach((cell) => {
-            if (cell !== null && !Number.isInteger(cell)) {
-                throw new Error("Les cellules doivent contenir un index de tuile ou null.");
+    parsedMap.cells.forEach((layer) => {
+        layer.forEach((row) => {
+            if (!Array.isArray(row) || row.length !== parsedMap.width) {
+                throw new Error("Les lignes du JSON ne correspondent pas a la taille indiquee.");
             }
+
+            row.forEach((cell) => {
+                if (cell !== null && !Number.isInteger(cell)) {
+                    throw new Error("Les cellules doivent contenir un index de tuile ou null.");
+                }
+            });
         });
     });
 
     return {
         width: parsedMap.width,
         height: parsedMap.height,
-        cells: parsedMap.cells.map((row) => [...row]),
+        cells: parsedMap.cells.map((layer) => [...layer]),
     };
 }
