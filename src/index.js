@@ -12,7 +12,7 @@ window.mapBuilderState = state;
 let isMouseDown = false;
 
 async function initialize() {
-    state.baseField = await loadTile("tiles1.png", 8, 8, dom.tileContainer, state);
+    state.baseField = await loadTile("tiles.png", 15, 18, dom.tileContainer, state);
 
     loadTileButton(state.baseField, dom.tileContainer, (selectedTile) => {
         state.currentTile = selectedTile;
